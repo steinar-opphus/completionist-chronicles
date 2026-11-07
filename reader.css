@@ -292,3 +292,11 @@ body:has(.image-viewer[open]) { overflow: hidden; }
 .image-gallery .gallery-card figcaption { font-size: 12px; }
 .image-gallery .gallery-card figcaption strong { font-size: 13px; }
 .image-gallery .gallery-card figcaption p { margin: 4px 0 0; }
+.sheet-note { max-width: 52rem; line-height: 1.55; opacity: .8; }
+.sheet-section { margin: 2rem 0; max-width: 64rem; }
+.sheet-section h2 { padding-bottom: .45rem; border-bottom: 1px solid var(--line, #bbb); }
+.sheet-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .7rem; }
+.sheet-tile { border: 1px solid var(--line, #bbb); border-radius: .45rem; padding: .8rem; display: flex; flex-direction: column; gap: .25rem; overflow-wrap: anywhere; }
+.sheet-label { font-size: .8rem; font-weight: 700; letter-spacing: .03em; }
+.sheet-tile strong { font-size: 1.15rem; }
+.sheet-tile small { font-size: .72rem; opacity: .75; }

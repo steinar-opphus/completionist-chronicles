@@ -98,6 +98,9 @@ const ReaderRules = {
     }
     return result;
   },
+  sheetEvents(data, cutoff) {
+    return (data.character_sheet?.events || []).filter(event => event.from <= cutoff);
+  },
   cutoff(data, saved) { return data.chapters.find(c => c.id === saved)?.rank || 0; }
 };
 if (typeof module !== 'undefined') module.exports = ReaderRules;
@@ -324,6 +327,41 @@ if (typeof document !== 'undefined') (() => {
       const count = pages.filter(p => p.category === key).length;
       if (count) node.append(el('a',{href:`index.html#${key}`,class:'category-link'},el('span',{},label),el('span',{},count)));
     }
+    if (data.character_sheet && pages.some(p => p.id === data.character_sheet.subject))
+      node.append(el('a',{href:'character-sheet.html',class:'category-link'},el('span',{},'Character sheet')));
+  }
+  function characterSheet() {
+    const subject = lookup.get(data.character_sheet?.subject);
+    if (!subject || subject.from > cutoff) {
+      app.append(el('section',{class:'empty-state'},el('h1',{},t.futureTitle),el('p',{},t.futureText)));
+      return;
+    }
+    const events = ReaderRules.sheetEvents(data,cutoff);
+    const latest = kind => {
+      const map = new Map();
+      events.filter(e => e.kind === kind).forEach(e => map.set(e.label.toLocaleLowerCase(),e));
+      return [...map.values()];
+    };
+    const descriptions = new Map(latest('skill_detail').map(e => [e.label.toLocaleLowerCase(),e]));
+    const tile = event => {
+      const detail = event.kind === 'skill' ? descriptions.get(event.label.toLocaleLowerCase()) : null;
+      return el('div',{class:'sheet-tile'},el('span',{class:'sheet-label'},event.label),
+        el('strong',{},event.value),detail ? el('span',{},detail.value) : null,
+        el('small',{},'Reported: '+positionLabel(event.from)));
+    };
+    app.append(el('header',{class:'article-heading'},el('span',{class:'eyebrow'},'CHARACTER SHEET'),
+      el('h1',{},name(subject)),el('p',{},'A chapter-aware record of reported values, abilities and titles.'),
+      el('a',{href:ReaderRules.navigationHref(data,subject,cutoff)},'Read the character article')));
+    app.append(el('p',{class:'sheet-note'},'Values are the last explicitly reported observations, not a live calculation. Skills may later be combined, lost, or changed; their last reported ranks are shown for reference.'));
+    for (const [kind,title] of [['identity','Identity'],['progress','Level and experience'],['resource','Resources'],['attribute','Characteristics'],['skill','Documented skills'],['title','Recorded titles']]) {
+      const entries = latest(kind);
+      if (!entries.length) continue;
+      app.append(el('section',{class:'sheet-section'},el('h2',{},title),el('div',{class:'sheet-grid'},entries.map(tile))));
+    }
+    const developments = events.filter(e => e.kind === 'journal').reverse();
+    if (developments.length) app.append(el('details',{class:'sheet-section'},
+      el('summary',{},`Recorded changes and abilities (${developments.length})`),
+      el('ol',{class:'sheet-history'},developments.map(e => el('li',{},e.value,el('small',{},' · '+positionLabel(e.from)))))));
   }
   function card(page) {
     const image = ReaderRules.images(page,cutoff).find(i => i.role === 'primary' && !i.spoiler);
@@ -533,7 +571,8 @@ if (typeof document !== 'undefined') (() => {
     closeImageViewer(); app.replaceChildren(); controls(); const pages = ReaderRules.pages(data,cutoff); nav(pages);
     document.querySelectorAll('[data-gallery-link]').forEach(link => { link.href = ReaderRules.navigationHref(data,{file:'gallery.html'},cutoff); });
     const pageId = document.body.dataset.page;
-    if (pageId === 'gallery' || pageId.startsWith('image-')) galleryPage(pageId);
+    if (pageId === 'character-sheet') characterSheet();
+    else if (pageId === 'gallery' || pageId.startsWith('image-')) galleryPage(pageId);
     else if (pageId === 'index') landing(pages); else article(lookup.get(pageId));
   }
   window.addEventListener('storage',event => {
